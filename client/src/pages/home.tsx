@@ -22,7 +22,8 @@ export default function Home() {
   });
 
   const { data: searchResults = [] } = useQuery<Thought[]>({
-    queryKey: ["/api/thoughts/search", { q: searchQuery }],
+    queryKey: ["/api/thoughts/search", searchQuery],
+    queryFn: () => fetch(`/api/thoughts/search?q=${encodeURIComponent(searchQuery)}`).then(res => res.json()),
     enabled: searchQuery.length > 0,
   });
 
