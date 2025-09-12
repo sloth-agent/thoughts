@@ -21,11 +21,13 @@ interface ConnectionResult {
 
 export async function analyzeThought(thought: Thought): Promise<ThoughtAnalysis> {
   try {
+    console.log("🧠 Starting thought analysis for:", thought.content.substring(0, 50) + "...");
+    
     const systemPrompt = `You are an expert at analyzing thoughts and identifying themes, keywords, sentiment, and categories.
 Analyze the given thought and provide a structured response.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash-exp",
       config: {
         systemInstruction: systemPrompt,
         responseMimeType: "application/json",
@@ -51,12 +53,14 @@ Analyze the given thought and provide a structured response.`;
 
     const rawJson = response.text;
     if (rawJson) {
-      return JSON.parse(rawJson) as ThoughtAnalysis;
+      const result = JSON.parse(rawJson) as ThoughtAnalysis;
+      console.log("✅ Thought analysis completed:", result);
+      return result;
     } else {
       throw new Error("Empty response from Gemini");
     }
   } catch (error) {
-    console.error("Failed to analyze thought:", error);
+    console.error("❌ Failed to analyze thought:", error);
     return {
       themes: [],
       keywords: [],
@@ -68,15 +72,25 @@ Analyze the given thought and provide a structured response.`;
 
 export async function findConnections(newThought: Thought, existingThoughts: Thought[]): Promise<ConnectionResult> {
   try {
+    console.log(`🔗 Starting connection analysis for: "${newThought.content.substring(0, 50)}..." against ${existingThoughts.length} existing thoughts`);
+    
     const systemPrompt = `You are an AI that finds meaningful connections between thoughts.
 Given a new thought and a list of existing thoughts, identify which existing thoughts are most related and why.
-Focus on conceptual similarities, thematic connections, and philosophical relationships.
-Return connections with strength scores from 0.1 to 1.0, and suggest relevant tags.`;
+Focus on conceptual similarities, thematic connections, shared keywords, and philosophical relationships.
+Be generous with connections - even subtle thematic links are valuable.
+Return connections with strength scores from 0.1 to 1.0, and suggest relevant tags.
+
+Examples of connections to look for:
+- Religious themes (god, faith, spirituality, jesus, allah, buddha, etc.)
+- Emotional states (happiness, sadness, anxiety, love, etc.)
+- Life concepts (death, birth, meaning, purpose, etc.)
+- Social topics (politics, relationships, work, family, etc.)
+- Abstract concepts (time, space, consciousness, existence, etc.)`;
 
     const thoughtsContext = existingThoughts.map(t => `ID: ${t.id} | "${t.content}"`).join('\n');
     
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash-exp",
       config: {
         systemInstruction: systemPrompt,
         responseMimeType: "application/json",
@@ -109,17 +123,21 @@ Return connections with strength scores from 0.1 to 1.0, and suggest relevant ta
     const rawJson = response.text;
     if (rawJson) {
       const result = JSON.parse(rawJson) as ConnectionResult;
-      // Filter connections with strength > 0.3 and limit to top 5
+      console.log(`🔍 Raw connection results:`, result);
+      
+      // Filter connections with strength > 0.2 (lowered threshold) and limit to top 5
       result.connectedThoughts = result.connectedThoughts
-        .filter(conn => conn.strength > 0.3)
+        .filter(conn => conn.strength > 0.2)
         .sort((a, b) => b.strength - a.strength)
         .slice(0, 5);
+        
+      console.log(`✅ Filtered connections (${result.connectedThoughts.length}):`, result.connectedThoughts);
       return result;
     } else {
       throw new Error("Empty response from Gemini");
     }
   } catch (error) {
-    console.error("Failed to find connections:", error);
+    console.error("❌ Failed to find connections:", error);
     return {
       connectedThoughts: [],
       suggestedTags: []

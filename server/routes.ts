@@ -18,22 +18,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new thought
   app.post("/api/thoughts", async (req, res) => {
     try {
+      console.log("📝 Creating new thought:", req.body);
       const validatedData = insertThoughtSchema.parse(req.body);
       
       // Create the thought
       const newThought = await storage.createThought(validatedData);
+      console.log("✅ Thought created with ID:", newThought.id);
       
       // Get existing thoughts for connection analysis
       const existingThoughts = await storage.getAllThoughts();
       const otherThoughts = existingThoughts.filter(t => t.id !== newThought.id);
+      console.log(`🔍 Found ${otherThoughts.length} existing thoughts to analyze for connections`);
       
       // Find connections using Gemini (run in background)
       if (otherThoughts.length > 0) {
+        console.log("🚀 Starting background AI connection analysis...");
         findConnections(newThought, otherThoughts)
           .then(async (connections) => {
+            console.log(`🔗 Processing ${connections.connectedThoughts.length} connections...`);
+            
             // Update the new thought with connections
             const connectionIds = connections.connectedThoughts.map(c => c.id);
             await storage.updateThoughtConnections(newThought.id, connectionIds);
+            console.log(`✅ Updated thought ${newThought.id} with connections:`, connectionIds);
             
             // Update connected thoughts to include bidirectional connections
             for (const conn of connections.connectedThoughts) {
@@ -41,6 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (connectedThought) {
                 const updatedConnections = [...connectedThought.connections, newThought.id];
                 await storage.updateThoughtConnections(conn.id, updatedConnections);
+                console.log(`✅ Updated bidirectional connection for thought ${conn.id}`);
               }
             }
             
@@ -51,16 +59,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ...thoughtWithTags, 
                 tags: connections.suggestedTags.slice(0, 3) 
               };
-              await storage.updateThoughtConnections(newThought.id, updatedThought.connections);
+              // Fix: Update tags properly in storage
+              const currentThought = await storage.getThought(newThought.id);
+              if (currentThought) {
+                currentThought.tags = connections.suggestedTags.slice(0, 3);
+                console.log(`✅ Updated thought ${newThought.id} with tags:`, currentThought.tags);
+              }
             }
+            
+            console.log("🎉 AI connection processing completed successfully!");
           })
           .catch(error => {
-            console.error("Failed to process connections:", error);
+            console.error("❌ Failed to process connections:", error);
           });
+      } else {
+        console.log("ℹ️ No existing thoughts to analyze for connections");
       }
       
       res.json(newThought);
     } catch (error: any) {
+      console.error("❌ Error creating thought:", error);
       res.status(400).json({ message: error.message || "Invalid thought data" });
     }
   });
