@@ -6,12 +6,21 @@ import ThoughtCard from "@/components/thought-card";
 import NetworkSidebar from "@/components/network-sidebar";
 import SearchBar from "@/components/search-bar";
 import MobileThoughtModal from "@/components/mobile-thought-modal";
+import ConnectionsModal from "@/components/connections-modal";
+import ThoughtOfTheDay from "@/components/thought-of-the-day";
 import { Brain, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import AdUnit from "@/components/ad-unit";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileModal, setShowMobileModal] = useState(false);
+  const [selectedThoughtId, setSelectedThoughtId] = useState<string | null>(null);
+
+  const handleViewConnections = (thoughtId: string) => {
+    setSelectedThoughtId(thoughtId);
+  };
+
 
   const { data: thoughts = [], isLoading } = useQuery<Thought[]>({
     queryKey: ["/api/thoughts"],
@@ -72,6 +81,9 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content Area */}
           <div className="lg:col-span-2">
+            {/* Thought of the Day */}
+            <ThoughtOfTheDay onViewConnections={handleViewConnections} />
+
             {/* New Thought Input */}
             <div className="mb-8">
               <ThoughtForm data-testid="form-new-thought" />
@@ -98,13 +110,28 @@ export default function Home() {
                   </p>
                 </div>
               ) : (
-                displayedThoughts.map((thought) => (
-                  <ThoughtCard 
-                    key={thought.id} 
-                    thought={thought}
-                    data-testid={`card-thought-${thought.id}`}
-                  />
-                ))
+                displayedThoughts.flatMap((thought, index) => {
+                  const items = [
+                    <ThoughtCard
+                      key={thought.id}
+                      thought={thought}
+                      onViewConnections={handleViewConnections}
+                      data-testid={`card-thought-${thought.id}`}
+                    />,
+                  ];
+
+                  if ((index + 1) % 3 === 0) {
+                    items.push(
+                      <AdUnit
+                        key={`ad-${index}`}
+                        adSlot="YOUR_AD_SLOT_ID"
+                        className="my-6"
+                      />,
+                    );
+                  }
+
+                  return items;
+                })
               )}
             </div>
           </div>
@@ -134,6 +161,13 @@ export default function Home() {
         open={showMobileModal}
         onClose={() => setShowMobileModal(false)}
         data-testid="modal-mobile-thought"
+      />
+
+      {/* Connections Modal */}
+      <ConnectionsModal
+        open={!!selectedThoughtId}
+        onClose={() => setSelectedThoughtId(null)}
+        thoughtId={selectedThoughtId}
       />
     </div>
   );

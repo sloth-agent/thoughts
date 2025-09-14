@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertThoughtSchema } from "@shared/schema";
 import { analyzeThought, findConnections } from "./services/gemini";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export function registerRoutes(app: Express): void {
   // Get all thoughts
   app.get("/api/thoughts", async (_req, res) => {
     try {
@@ -137,6 +137,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  // Get thought of the day
+  app.get("/api/thought-of-the-day", async (_req, res) => {
+    try {
+      const thought = await storage.getThoughtOfTheDay();
+      if (!thought) {
+        res.status(404).json({ message: "No thought of the day found" });
+        return;
+      }
+      res.json(thought);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get thought of the day" });
+    }
+  });
+
+
 }

@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import type { Thought, NetworkStats } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Expand } from "lucide-react";
+import { Expand, Shrink } from "lucide-react";
+import { useNetworkGraph } from "@/hooks/use-network-graph";
 
 interface NetworkSidebarProps {
   thoughts: Thought[];
@@ -11,55 +12,28 @@ interface NetworkSidebarProps {
 }
 
 export default function NetworkSidebar({ thoughts, stats }: NetworkSidebarProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
+  const svgRef = useNetworkGraph(thoughts);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      svgRef.current?.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   useEffect(() => {
-    if (!svgRef.current || thoughts.length === 0) return;
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
 
-    const svg = svgRef.current;
-    const rect = svg.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
+    document.addEventListener("fullscreenchange", handleFullScreenChange);
 
-    // Simple network visualization
-    const nodes = thoughts.slice(0, 10).map((thought, index) => ({
-      id: thought.id,
-      x: Math.random() * (width - 40) + 20,
-      y: Math.random() * (height - 40) + 20,
-      connections: thought.connections.length,
-    }));
-
-    // Clear existing content
-    while (svg.firstChild) {
-      svg.removeChild(svg.firstChild);
-    }
-
-    // Draw connections
-    nodes.forEach((node) => {
-      node.connections > 0 && nodes.forEach((otherNode) => {
-        if (node.id !== otherNode.id && Math.random() > 0.7) {
-          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-          line.setAttribute("x1", node.x.toString());
-          line.setAttribute("y1", node.y.toString());
-          line.setAttribute("x2", otherNode.x.toString());
-          line.setAttribute("y2", otherNode.y.toString());
-          line.setAttribute("class", "stroke-muted-foreground stroke-1 opacity-40");
-          svg.appendChild(line);
-        }
-      });
-    });
-
-    // Draw nodes
-    nodes.forEach((node) => {
-      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      circle.setAttribute("cx", node.x.toString());
-      circle.setAttribute("cy", node.y.toString());
-      circle.setAttribute("r", Math.max(4, Math.min(12, node.connections * 2 + 4)).toString());
-      circle.setAttribute("class", "fill-primary cursor-pointer hover:fill-accent transition-colors");
-      circle.setAttribute("data-testid", `node-${node.id}`);
-      svg.appendChild(circle);
-    });
-  }, [thoughts]);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullScreenChange);
+    };
+  }, []);
 
   const uniqueThemes = Array.from(
     new Set(thoughts.flatMap(t => t.tags))
@@ -71,8 +45,8 @@ export default function NetworkSidebar({ thoughts, stats }: NetworkSidebarProps)
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Thought Network</CardTitle>
-            <Button variant="ghost" size="icon" data-testid="button-expand-network">
-              <Expand size={16} />
+            <Button variant="ghost" size="icon" data-testid="button-expand-network" onClick={toggleFullScreen}>
+              {isFullScreen ? <Shrink size={16} /> : <Expand size={16} />}
             </Button>
           </div>
         </CardHeader>
@@ -81,7 +55,7 @@ export default function NetworkSidebar({ thoughts, stats }: NetworkSidebarProps)
             <svg
               ref={svgRef}
               className="w-full h-full"
-              viewBox="0 0 300 200"
+              
               data-testid="svg-network-graph"
             />
             
@@ -134,12 +108,7 @@ export default function NetworkSidebar({ thoughts, stats }: NetworkSidebarProps)
                 {stats?.activeConnections || 0}
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Your Contributions</span>
-              <span className="font-semibold text-accent" data-testid="stat-user-contributions">
-                {stats?.userContributions || 0}
-              </span>
-            </div>
+
           </div>
         </CardContent>
       </Card>

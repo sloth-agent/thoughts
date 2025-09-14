@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import type { Thought } from "@shared/schema";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const ai = new GoogleGenAI({ apiKey: "AIzaSyC_5Y5s1GibbQHSaSJWA2II4zWuHnDLt0M" });
 
 interface ThoughtAnalysis {
   themes: string[];

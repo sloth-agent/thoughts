@@ -10,9 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ThoughtCardProps {
   thought: Thought;
+  onViewConnections: (thoughtId: string) => void;
 }
 
-export default function ThoughtCard({ thought }: ThoughtCardProps) {
+export default function ThoughtCard({ thought, onViewConnections }: ThoughtCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -95,6 +96,7 @@ export default function ThoughtCard({ thought }: ThoughtCardProps) {
               size="sm"
               className="text-muted-foreground hover:text-primary transition-colors"
               data-testid={`button-connections-${thought.id}`}
+              onClick={() => onViewConnections(thought.id)}
             >
               <LinkIcon className="mr-1" size={16} />
               View Connections

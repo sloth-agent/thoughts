@@ -10,6 +10,7 @@ export interface IStorage {
   updateThoughtConnections(id: string, connections: string[]): Promise<Thought | undefined>;
   getNetworkStats(): Promise<NetworkStats>;
   getConnectedThoughts(thoughtId: string): Promise<Thought[]>;
+  getThoughtOfTheDay(): Promise<Thought | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -93,6 +94,19 @@ export class MemStorage implements IStorage {
     return thought.connections
       .map(id => this.thoughts.get(id))
       .filter((t): t is Thought => t !== undefined);
+  }
+
+  async getThoughtOfTheDay(): Promise<Thought | undefined> {
+    const allThoughts = Array.from(this.thoughts.values());
+    if (allThoughts.length === 0) {
+      return undefined;
+    }
+
+    const date = new Date();
+    const seed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+    const randomIndex = Math.floor(seed % allThoughts.length);
+
+    return allThoughts[randomIndex];
   }
 }
 
