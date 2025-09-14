@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertThoughtSchema } from "@shared/schema";
-import { analyzeThought, findConnections } from "./services/gemini";
+import { analyzeThought, findConnections } from "../server/services/gemini";
 
 export function registerRoutes(app: Express): void {
   // Get all thoughts
