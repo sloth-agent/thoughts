@@ -1,5 +1,9 @@
 import { type Thought, type InsertThought, type ThoughtConnection, type NetworkStats } from "@shared/schema";
 import { randomUUID } from "crypto";
+import fs from "fs/promises";
+import path from "path";
+
+const STORAGE_FILE = path.resolve(process.cwd(), "thoughts.json");
 
 export interface IStorage {
   getThought(id: string): Promise<Thought | undefined>;
@@ -15,11 +19,30 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private thoughts: Map<string, Thought>;
-  private connections: Map<string, ThoughtConnection[]>;
 
   constructor() {
     this.thoughts = new Map();
-    this.connections = new Map();
+    this.loadThoughts();
+  }
+
+  private async saveThoughts(): Promise<void> {
+    await fs.writeFile(STORAGE_FILE, JSON.stringify(Array.from(this.thoughts.values()), null, 2));
+  }
+
+  private async loadThoughts(): Promise<void> {
+    try {
+      const data = await fs.readFile(STORAGE_FILE, "utf-8");
+      const parsedThoughts: Thought[] = JSON.parse(data);
+      this.thoughts = new Map(parsedThoughts.map(thought => [thought.id, thought]));
+    } catch (error: any) {
+      if (error.code === "ENOENT") {
+        console.log("Storage file not found, initializing empty thoughts.");
+        this.thoughts = new Map();
+      } else {
+        console.error("Error loading thoughts from file:", error);
+        this.thoughts = new Map(); // Initialize empty on error
+      }
+    }
   }
 
   async getThought(id: string): Promise<Thought | undefined> {
@@ -44,6 +67,7 @@ export class MemStorage implements IStorage {
       connections: [],
     };
     this.thoughts.set(id, thought);
+    await this.saveThoughts();
     return thought;
   }
 
@@ -61,6 +85,7 @@ export class MemStorage implements IStorage {
     if (thought) {
       const updatedThought = { ...thought, likes: thought.likes + 1 };
       this.thoughts.set(id, updatedThought);
+      await this.saveThoughts();
       return updatedThought;
     }
     return undefined;
@@ -71,6 +96,7 @@ export class MemStorage implements IStorage {
     if (thought) {
       const updatedThought = { ...thought, connections };
       this.thoughts.set(id, updatedThought);
+      await this.saveThoughts();
       return updatedThought;
     }
     return undefined;
