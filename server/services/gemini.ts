@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { storage } from "../../api/storage";
 import type { Thought } from "@shared/schema";
 
 const ai = new GoogleGenAI({ apiKey: "AIzaSyC_5Y5s1GibbQHSaSJWA2II4zWuHnDLt0M" });
