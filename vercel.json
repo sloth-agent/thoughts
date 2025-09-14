@@ -1,8 +1,11 @@
 {
   "framework": "vite",
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/public",
+  "functions": {
+    "api/index.ts": {
+      "runtime": "nodejs18.x"
     }
   },
   "rewrites": [
