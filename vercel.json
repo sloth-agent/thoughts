@@ -1,5 +1,14 @@
 {
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api" },
+    { "src": "/(.*)", "dest": "/client/index.html" }
   ]
 }
