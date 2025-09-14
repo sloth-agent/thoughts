@@ -1,6 +1,6 @@
 
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "@server/routes";
+import { registerRoutes } from "../server/routes";
 
 const app = express();
 app.use(express.json());
